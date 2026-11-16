@@ -1,122 +1,38 @@
-# 🛡️ Dynamic BioSecurity — Controle de Acesso e Detecção de Anomalias com Redes Neurais & Biometria Comportamental
+# 🛡️Dynamic BioSecurity
 
-Sistema avançado de **Autenticação Contínua e Detecção de Anomalias em Tempo Real** utilizando arquitetura híbrida de Deep Learning (Redes Neurais Densas & LSTM) aplicada à **Biometria Comportamental (Keystroke Dynamics)**.
+Pesquisa aplicada sobre detecção de anomalias com redes neurais, com o objetivo de usar biometria comportamental (dinâmica de digitação) como sinal complementar de autenticação.
 
-Desenvolvido como projeto de pesquisa e portfólio prático por Alice Miranda (Ciência da Computação - PUC Minas), o sistema substitui barreiras de login estáticas por um monitoramento comportamental contínuo e transparente.
+> **Status:** em pesquisa. O pipeline de detecção foi validado com um dataset público de demonstração. A aplicação em dados reais de digitação ainda não foi validada.
+> **Aviso de confidencialidade:** este projeto foi desenvolvido em contexto profissional. Este repositório apresenta apenas a proposta e o estado da pesquisa. Não contém código-fonte, modelos treinados, dados ou resultados não validados.
 
-#### 🚧 Status do Projeto: Em desenvolvimento ativo / Pesquisa aplicada iterativa.
-**Nota:** Os parâmetros dos modelos e o pipeline de redes neurais estão em constante evolução à medida que os testes e a validação experimental avançam.
+## Problema
 
-## 🎯 Problema de Negócio & Abordagem Científica
+Senhas e tokens estáticos podem ser roubados ou usados por quem assume uma sessão já aberta. A proposta é observar, de forma contínua, padrões de interação do usuário e usar esse sinal para decidir se a sessão deve seguir normalmente ou pedir uma verificação adicional.
 
-Sistemas tradicionais de segurança baseados unicamente em credenciais estáticas (senhas, PINs e MFA via SMS) falham ao combater sequestro de sessão (*session hijacking*), roubo de credenciais por engenharia social ou bots automatizados.
+## Abordagem
 
-### A Solução
+- **Biometria comportamental:** características temporais de digitação, como o tempo que cada tecla fica pressionada e o intervalo entre teclas.
+- **Detecção de anomalias:** um modelo aprende o padrão de referência de um usuário e mede o desvio do comportamento atual.
+- **Decisão por risco:** o desvio é combinado com o contexto de acesso para escolher entre liberar, pedir verificação adicional ou bloquear.
 
-O **Dynamic BioSecurity** transforma a interação física/digital do usuário em um vetor de dados biométricos únicos (a "assinatura invisível" de digitação). A solução avalia continuamente o comportamento do usuário e ajusta a permissão de acesso através de um **Score de Risco Dinâmico**.
+## Estado atual
 
-```
-[ Captura do Teclado ] ──► [ Pré-processamento & Z-Score ]
-                                    │
-                                    ▼
-                 ┌──────────────────────────────────────┐
-                 │ REDE 1: Perfilamento & Anomalias     │
-                 │ (Deep Neural Network / LSTM)         │
-                 └──────────────────┬───────────────────┘
-                                    │ Generates Anomaly Score
-                                    ▼
-                 ┌──────────────────────────────────────┐
-                 │ REDE 2: Avaliação de Risco & Decisão │
-                 │ (Classificador Adam + BCE Loss)      │
-                 └──────────────────┬───────────────────┘
-                                    │
-       ┌────────────────────────────┼────────────────────────────┐
-       ▼                            ▼                            ▼
-[ Acesso Aprovado ]        [ Desafio MFA Dinâmico ]    [ Bloqueio Preventivo ]
-  (Baixo Risco)                 (Risco Médio)                (Alto Risco)
+- **Validado:** pipeline de detecção de anomalias com Autoencoder (PyTorch), normalização e definição de limiar, testado em um dataset público de demonstração.
+- **Em andamento:** adaptação do pipeline para dados de digitação.
+- **Ainda não implementado:** coleta de dados reais de digitação, avaliação com métricas de detecção em dados de usuários e integração com um sistema de autenticação.
 
-```
+## Tecnologias
 
-### 📊 Pipeline de Ciência de Dados & Pré-processamento
+Python, PyTorch, Scikit-learn, Pandas, NumPy.
 
-**1. Extração de Métricas Biométricas (Keystroke Dynamics)**
-* **Dwell Time ($T_d$):** Tempo em milissegundos (ms) em que uma tecla permanece pressionada.
-* **Flight Time ($T_f$):** Intervalo de tempo (ms) entre a libertação de uma tecla e o acionamento da seguinte.
-* **Métricas Contextuais:** Cadência de digitação, ritmo de preenchimento de formulários e telemetria básica da sessão.
+## Próximos passos
 
-**2. Limpeza e Escalonamento**
-
-* **Remoção de Outliers via Z-Score:** Filtro para remover variações externas e pausas físicas anómalas:
-  > `|Z| = | (x - μ) / σ | > 3`
-
-* **Normalização Min-Max:** Padronização das variáveis no intervalo $[0, 1]$ para otimização da convergência dos gradientes:
-  > `x' = (x - x_min) / (x_max - x_min)`
-
-## 🧠 Arquitetura de Redes Neurais (Abordagem Híbrida)
-
-O pipeline de inferência é composto por duas redes neurais complementares operando em cascata:
-
-### 🔹 Rede 1: Modelo de Perfilamento de Anomalias (Deep Neural Network)
-
-* **Arquitetura:** Camadas Densas (Feedforward) totalmente conectadas com camadas de dropout para prevenir *overfitting*.
-
-* **Função de Ativação:** `ReLU` nas camadas ocultas (captura de não-linearidades do ritmo motor) e `Sigmoid` na camada de saída.
-
-* **Objetivo:** Comparar o vetor de digitação atual com o *baseline* histórico do usuário cadastrado, gerando uma métrica de desvio comportamental.
-
-### 🔹 Rede 2: Engine de Decisão & Classificação de Risco
-
-* **Arquitetura:** Classificador multicamadas conectado a um motor de regras de segurança.
-
-* **Otimizador & Perda:** Otimizador **Adam** (taxa de aprendizado adaptativa) e função de perda **Binary Cross-Entropy**.
-
-* **Objetivo:** Consolidar a taxa de anomalia da Rede 1 com metadados de acesso (horário, sistema e IP) para tomar a decisão de segurança:
-
-  1. **Aprovado:** Acesso transparente sem interrupções.
-
-  2. **MFA Dinâmico:** Solicitação de autenticação adicional.
-
-  3. **Bloqueio:** Interrupção imediata da sessão por suspeita de fraude.
-
-## 📊 Métricas de Desempenho & Validação
-
-O modelo é avaliado com foco em métricas críticas para ambientes bancários e corporativos:
-
-* **Precision & Recall:** Maximização do *Recall* para mitigar Falsos Negativos (impedir invasões) mantendo alta *Precision* para minimizar Falsos Positivos (evitar bloqueios indevidos de usuários legítimos cansados).
-
-* **Curva ROC-AUC & Matriz de Confusão:** Utilizadas no ajuste fino do limiar (*threshold*) de decisão.
-
-## 🛠️ Stack Tecnológica
-
-* **Linguagem Principal:** Python 3.10+
-
-* **Deep Learning & ML:** TensorFlow, Keras, Scikit-Learn
-
-* **Processamento & Análise de Dados:** Pandas, NumPy
-
-* **Visualização:** Matplotlib, Seaborn
-
-* **Arquitetura de Microsserviços:** FastAPI (Endpoints de validação biométrica)
-
-## 📂 Estrutura do Repositório
-
-```
-├── notebooks/
-│   └── treinamento_redes_neurais.ipynb   # Treinamento e avaliação do modelo
-├── src/
-│   ├── data_preprocessing.py            # Tratamento de outliers e MinMaxScaler
-│   ├── neural_networks.py               # Definição das arquiteturas Keras
-│   └── inference_api.py                 # Endpoint FastAPI para validação
-├── models/                              # Pesos dos modelos treinados (.h5 / .keras)
-├── requirements.txt                     # Dependências do projeto
-└── README.md                            # Documentação técnica
-
-```
+- Coletar e tratar dados de digitação de forma controlada.
+- Avaliar o modelo com métricas de detecção (precisão, recall e curva ROC-AUC).
+- Calibrar o limiar de decisão para equilibrar falsos alarmes e falsos negativos.
 
 ## 👩‍💻 Autora
 
 **Alice Miranda** — *Estudante de Ciência da Computação na PUC Minas*
-
-* Pesquisadora em IA/ML, Engenheira de Software AI-Native
 
 * 🌐 [LinkedIn](https://linkedin.com/in/alicemirandar) | 🐙 [GitHub](https://github.com/AliceMiranda1)
