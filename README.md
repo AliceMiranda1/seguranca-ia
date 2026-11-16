@@ -1,4 +1,4 @@
-# 🛡️Dynamic BioSecurity
+# 🛡️Dynamic BioSecurity - Sistema de Segurança com IA
 
 Pesquisa aplicada sobre detecção de anomalias com redes neurais, com o objetivo de usar biometria comportamental (dinâmica de digitação) como sinal complementar de autenticação.
 
